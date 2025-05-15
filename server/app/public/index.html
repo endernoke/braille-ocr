@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Processing Demo</h1>
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="uploadImage()">Process Image</button>
+        </div>
+        <div id="status" class="status"></div>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        async function uploadImage() {
+            const input = document.getElementById('imageInput');
+            const status = document.getElementById('status');
+            const result = document.getElementById('result');
+            
+            if (!input.files[0]) {
+                alert('Please select an image first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                // Submit the image
+                status.textContent = 'Uploading image...';
+                const submitResponse = await fetch('/api/process-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!submitResponse.ok) throw new Error('Upload failed');
+                
+                const { task_id } = await submitResponse.json();
+                
+                // Poll for result
+                status.textContent = 'Processing image...';
+                while (true) {
+                    const statusResponse = await fetch(`/api/tasks/${task_id}/status`);
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.status === 'completed') {
+                        const resultResponse = await fetch(`/api/tasks/${task_id}/result`);
+                        const resultData = await resultResponse.json();
+                        result.textContent = 'Result: ' + JSON.stringify(resultData.result, null, 2);
+                        status.textContent = 'Processing complete!';
+                        break;
+                    } else if (statusData.status === 'failed') {
+                        status.textContent = 'Processing failed';
+                        result.textContent = '';
+                        break;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+            } catch (error) {
+                status.textContent = 'Error: ' + error.message;
+                result.textContent = '';
+            }
+        }
+    </script>
+</body>
+</html>
