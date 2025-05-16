@@ -94,7 +94,13 @@ const OCRPage = () => {
       )}
 
       {result && (
-        <ResultDisplay result={result} />
+        <ResultDisplay 
+          result={result} 
+          onBack={() => {
+            setResult(null);
+            setError(null);
+          }} 
+        />
       )}
     </Box>
   );
