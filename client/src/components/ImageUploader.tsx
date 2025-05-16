@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Box, Button, CircularProgress, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import { CameraAlt, Upload, Close } from '@mui/icons-material';
+import { Box, Button, CircularProgress, IconButton } from '@mui/material';
+import { Upload, Close } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import CameraView from './CameraView.js';
 
 const Input = styled('input')({
   display: 'none',
@@ -15,7 +14,6 @@ interface ImageUploaderProps {
 
 const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -24,13 +22,6 @@ const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
       setPreviewUrl(url);
       onImageSelected(file);
     }
-  };
-
-  const handleCameraCapture = (file: File) => {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    onImageSelected(file);
-    setShowCamera(false);
   };
 
   const handleRetake = () => {
@@ -48,12 +39,7 @@ const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
       maxWidth: 600,
       margin: '0 auto'
     }}>
-      {showCamera ? (
-        <CameraView
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
-      ) : previewUrl ? (
+      {previewUrl ? (
         <Box sx={{
           width: '100%',
           aspectRatio: '4/3',
@@ -117,24 +103,23 @@ const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
           gap: 2,
           backgroundColor: 'grey.50'
         }}>
-          <CameraAlt sx={{ fontSize: 48, color: 'grey.500' }} />
+          <Upload sx={{ fontSize: 48, color: 'grey.500' }} />
         </Box>
       )}
 
-      {!showCamera && !isLoading && (
+      {!isLoading && (
         <Box sx={{ display: 'flex', gap: 2, width: '100%', justifyContent: 'center' }}>
           <Button
-            variant={"contained"}
+            variant="contained"
             startIcon={<Upload />}
             component="label"
             disabled={isLoading}
-            // fullWidth={!isDesktop}
+            fullWidth
           >
             Choose Image
             <Input
               accept="image/*"
               type="file"
-              // capture={isDesktop ? undefined : "environment"}
               onChange={handleFileChange}
             />
           </Button>
