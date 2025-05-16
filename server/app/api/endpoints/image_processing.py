@@ -2,6 +2,7 @@ import io
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException
 from PIL import Image
 import logging
+from copy import deepcopy
 
 from app.core import tasks
 from app.core.processing import process_braille_image, image_processing_lock
@@ -75,7 +76,7 @@ async def get_task_status(task_id: str):
 
 @router.get("/tasks/{task_id}/result", response_model=TaskResultResponse)
 async def get_task_result(task_id: str):
-    task_info = tasks.get_task_info(task_id)
+    task_info = deepcopy(tasks.get_task_info(task_id))
     if not task_info:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -91,5 +92,8 @@ async def get_task_result(task_id: str):
     else:
         response.message = "Processing not yet complete"
         return response, 202
-        
+
+    # Clean up the task info after retrieval (to avoid memory leaks)
+    del tasks.tasks_db[task_id]
+
     return response
