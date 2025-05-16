@@ -34,6 +34,7 @@ from PIL import Image
 import AngelinaReader.model.infer_retinanet as infer_retinanet
 import louis
 from typing import NewType, Optional, Literal
+import re
 
 ANGELINA_READER_DIR = os.path.normpath(os.path.join(__file__, "..", "..", "..", "AngelinaReader"))
 
@@ -72,16 +73,22 @@ def braille_to_text(braille: List[str], lang: Literal["EN", "ZH-HK"]) -> str:
     """
     Convert braille to text using liblouis.
     """
+    back_translation = ""
     if lang == "EN":
         back_translation = "\n".join(list(map(
             lambda braille_line: louis.backTranslateString(["en-ueb-g2.ctb"], braille_line),
             braille
         )))
-        return back_translation
     elif lang == "ZH-HK":
         back_translation = "\n".join(list(map(
             lambda braille_line: louis.backTranslateString(["zh-hk.ctb"], braille_line),
             braille
         )))
         back_translation = correct_homophones(back_translation)
-        return back_translation
+    
+    # Clean the transcribed text
+    # The text might contain braille literals like \1/, \123/, etc.
+    # which are results of untranslatable braille patterns
+    # Remove these patterns
+    cleaned_text = re.sub(r"\\(\d+)/", "", back_translation)
+    return cleaned_text
