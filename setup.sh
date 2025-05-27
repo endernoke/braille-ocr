@@ -7,6 +7,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Define directories relative to the script's location
 SERVER_DIR="${SCRIPT_DIR}/server"
+CLIENT_DIR="${SCRIPT_DIR}/client"
 VENV_DIR="${SERVER_DIR}/venv"
 REPO_DIR="${SERVER_DIR}/AngelinaReader"
 REPO_URL="https://github.com/IlyaOvodov/AngelinaReader.git"
@@ -130,19 +131,42 @@ echo "Running liblouis tests..."
 
 echo "liblouis installation completed."
 
-echo ""
-echo "--------------------------------------------------------------------"
-echo "Setup script finished."
-echo "To activate the virtual environment in your current shell, run:"
-echo "  source \"${VENV_DIR}/bin/activate\""
-echo "Remember to replace YOUR_MODEL_DOWNLOAD_URL_HERE in the script if you haven't already."
-echo "--------------------------------------------------------------------"
+# 6. Build the client
+
 
 echo ""
+echo "Step 6: Building the client..."
+if ! command -v npm &> /dev/null; then
+    echo "npm is not installed. Skipping client build step."
+else
+    if [ -d "${CLIENT_DIR}" ]; then
+        echo "Building client in '${CLIENT_DIR}'..."
+        cd "${CLIENT_DIR}"
+        npm install
+        npm run build
+        echo "Client build completed."
+    else
+        echo "Client directory '${CLIENT_DIR}' does not exist. Skipping client build step."
+    fi
+fi
+
+echo ""
+echo "--------------------------------------------------------------------"
+echo "Setup script finished"
+echo ""
 echo "IMPORTANT"
-echo "1. In \'server/AngelinaReader/model/infer_retinanet.py\',"
+echo "===================================================================="
+echo "In \'server/AngelinaReader/model/infer_retinanet.py\',"
 echo "    Change line 12 from"
 echo "        import local_config"
 echo "    to"
 echo "        from .. import local_config"
 echo ""
+echo "To start the server:"
+echo "1. Make sure you are in the server directory"
+echo "    cd ${SERVER_DIR}"
+echo "2. Activate the Python virtual environment"
+echo "    source venv/bin/activate"
+echo "3. Start the server"
+echo "    uvicorn app.main:app --host 0.0.0.0 --port 1897"
+echo "--------------------------------------------------------------------"
