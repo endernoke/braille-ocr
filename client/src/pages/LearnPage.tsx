@@ -1,4 +1,4 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, Button } from '@mui/material';
 
 const LearnPage = () => {
   return (
@@ -8,12 +8,15 @@ const LearnPage = () => {
           Learn Braille
         </Typography>
         <Typography>
-          This section will contain learning resources for Braille.
-          Coming soon!
+          It's like Duolingo, but for Braille! This is a fun and interactive way to learn Braille.
         </Typography>
+        <Button variant="contained" sx={{ mt: 2 }}>
+          Start Lesson | 開始學習
+        </Button>
       </Paper>
     </Box>
   );
 };
 
 export default LearnPage;
+

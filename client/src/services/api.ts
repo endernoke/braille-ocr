@@ -7,9 +7,10 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-export const uploadImage = async (file: File): Promise<TaskResponse> => {
+export const uploadImage = async (file: File, lang: 'EN' | 'ZH-HK'): Promise<TaskResponse> => {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('lang', lang);
 
   const response = await api.post('/process-image', formData, {
     headers: {

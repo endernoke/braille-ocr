@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, CircularProgress, IconButton } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Upload, Close } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -8,24 +8,35 @@ const Input = styled('input')({
 });
 
 interface ImageUploaderProps {
-  onImageSelected: (file: File) => void;
+  onImageSelected: (file: File, lang: 'EN' | 'ZH-HK') => void;
   isLoading?: boolean;
 }
 
 const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
-      onImageSelected(file);
+      setSelectedFile(file);
+      setLanguageDialogOpen(true);
+    }
+  };
+
+  const handleLanguageSelect = (lang: 'EN' | 'ZH-HK') => {
+    if (selectedFile) {
+      onImageSelected(selectedFile, lang);
+      setLanguageDialogOpen(false);
     }
   };
 
   const handleRetake = () => {
     setPreviewUrl(null);
+    setSelectedFile(null);
   };
 
   return (
@@ -125,6 +136,34 @@ const ImageUploader = ({ onImageSelected, isLoading }: ImageUploaderProps) => {
           </Button>
         </Box>
       )}
+
+      <Dialog
+        open={languageDialogOpen}
+        onClose={() => setLanguageDialogOpen(false)}
+        aria-labelledby="language-dialog-title"
+        aria-describedby="language-dialog-description"
+      >
+        <DialogTitle id="language-dialog-title">Select OCR Language</DialogTitle>
+        <DialogContent>
+          Please select the language for OCR processing:
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', p: 2, gap: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => handleLanguageSelect('EN')}
+            fullWidth
+          >
+            English
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => handleLanguageSelect('ZH-HK')}
+            fullWidth
+          >
+            廣東話 (Cantonese)
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

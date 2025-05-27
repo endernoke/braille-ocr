@@ -1,5 +1,5 @@
 import io
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException
+from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException, Form
 from PIL import Image
 import logging
 from copy import deepcopy
@@ -10,7 +10,7 @@ from app.api.schemas import TaskCreationResponse, TaskStatusResponse, TaskResult
 
 router = APIRouter()
 
-async def run_image_processing_logic(task_id: str, image_data: bytes, original_filename: str):
+async def run_image_processing_logic(task_id: str, image_data: bytes, original_filename: str, lang: str):
     """Background task for processing the image."""
     try:
         # Process image with lock (non-thread-safe operation)
@@ -19,7 +19,7 @@ async def run_image_processing_logic(task_id: str, image_data: bytes, original_f
             tasks.update_task_status(task_id, "processing")
             # Convert bytes back to PIL Image
             image = Image.open(io.BytesIO(image_data))
-            result = await process_braille_image(image, original_filename)
+            result = await process_braille_image(image, original_filename, lang=lang)
         
         # Store successful result
         tasks.store_task_result(task_id, result.model_dump())
@@ -31,8 +31,10 @@ async def run_image_processing_logic(task_id: str, image_data: bytes, original_f
 @router.post("/process-image", response_model=TaskCreationResponse, status_code=202)
 async def submit_image_for_processing(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    lang: str = Form(""),
 ):
+    print("Received language: ", lang)
     try:
         # Try to open and validate the image
         image_data = await file.read()
@@ -49,7 +51,8 @@ async def submit_image_for_processing(
             run_image_processing_logic,
             task_id,
             image_data,
-            original_filename=file.filename
+            original_filename=file.filename,
+            lang=lang,
         )
         
         return TaskCreationResponse(

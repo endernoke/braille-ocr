@@ -49,13 +49,13 @@ const OCRPage = () => {
     };
   }, [currentTask]);
 
-  const handleImageSelected = async (file: File) => {
+  const handleImageSelected = async (file: File, lang: 'EN' | 'ZH-HK') => {
     try {
       setIsLoading(true);
       setError(null);
       setResult(null);
 
-      const response = await uploadImage(file);
+      const response = await uploadImage(file, lang);
       setCurrentTask(response);
     } catch (error) {
       setError('Error uploading image');
