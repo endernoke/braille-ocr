@@ -1,0 +1,36 @@
+# Docker Compose overrides for production
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  redis:
+    # Use redis with persistence in production
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+  
+  api:
+    # Don't mount source code in production
+    volumes:
+      - uploads:/app/uploads
+      - results:/app/results
+      - models:/app/models
+    # Use more workers in production
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+  
+  worker:
+    # Don't mount source code in production
+    volumes:
+      - uploads:/app/uploads
+      - results:/app/results
+      - models:/app/models
+    # Scale workers based on load
+    # Run: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --scale worker=3
+  
+  frontend:
+    # In production, use a proper domain
+    environment:
+      - VIRTUAL_HOST=your-domain.com
+      - LETSENCRYPT_HOST=your-domain.com
+      - LETSENCRYPT_EMAIL=your-email@example.com
