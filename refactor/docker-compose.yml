@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    profiles: [app, training]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - network
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api
+    profiles: [app]
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    volumes:
+      - ./backend/src:/app/src
+      - uploads:/app/uploads
+      - results:/app/results
+      - models:/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - network
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile.worker
+    container_name: worker
+    profiles: [app]
+    environment:
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEVICE=cuda
+    volumes:
+      - ./backend/src:/app/src
+      - uploads:/app/uploads
+      - results:/app/results
+      - models:/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - network
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    profiles: [app]
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - network
+    restart: unless-stopped
+
+  training:
+    build:
+      context: .
+      dockerfile: ./training/Dockerfile
+    container_name: training
+    profiles: [training]
+    environment:
+      - DEVICE=cuda
+    volumes:
+      - ./training:/app/training
+      - ./backend/src:/app/backend/src
+      - ./data:/data
+      - models:/app/models
+    depends_on:
+      - redis
+    networks:
+      - network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  uploads:
+  results:
+  models:
