@@ -1,8 +1,9 @@
 import io
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException, Form
-from PIL import Image
 import logging
 from copy import deepcopy
+import numpy as np
+import cv2
 
 from app.core import tasks
 from app.core.processing import process_braille_image, image_processing_lock
@@ -17,8 +18,8 @@ async def run_image_processing_logic(task_id: str, image_data: bytes, original_f
         async with image_processing_lock:
             # Update task status to processing
             tasks.update_task_status(task_id, "processing")
-            # Convert bytes back to PIL Image
-            image = Image.open(io.BytesIO(image_data))
+            # Convert bytes back to image
+            image = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
             result = await process_braille_image(image, original_filename, lang=lang)
         
         # Store successful result
@@ -39,7 +40,8 @@ async def submit_image_for_processing(
         # Try to open and validate the image
         image_data = await file.read()
         try:
-            Image.open(io.BytesIO(image_data))
+            image = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
+            assert image is not None, "Unable to read image"
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid image file")
         

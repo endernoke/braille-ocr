@@ -1,3 +1,8 @@
+results/
+*.t7
+*.pth
+*.pt
+
 AngelinaReader
 app/public/
 

@@ -21,11 +21,11 @@ LIBLOUIS_DIR="/usr/local/liblouis-${LIBLOUIS_VERSION}"
 
 # --- Main Script ---
 
-# Check if script is run with sudo
-if [ "$EUID" -ne 0 ]; then 
-    echo "Please run as root or with sudo privileges"
-    exit 1
-fi
+# # Check if script is run with sudo
+# if [ "$EUID" -ne 0 ]; then 
+#     echo "Please run as root or with sudo privileges"
+#     exit 1
+# fi
 
 echo "Starting setup..."
 echo "Script directory: ${SCRIPT_DIR}"

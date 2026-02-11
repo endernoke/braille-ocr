@@ -51,11 +51,11 @@
     "!": "un",
     "8": "ung",
     ":": "oe",
-    "j": "oey",
-    "s": "oen",
+    "j": "eoi",
+    "s": "eon",
     "3": "oeng",
-    "#": "y",
-    "2": "yn"
+    "?": "yu",
+    "2": "yun"
   },
   "finals_short": {
     "p": "aap",
@@ -72,9 +72,9 @@
     "}": "ok",
     "z": "ut",
     "q": "uk",
-    "x": "oet",
+    "x": "eot",
     "{": "oek",
-    "(": "yt"
+    "(": "yut"
   },
   "standalone_long": {
     "b": "aa",
@@ -104,13 +104,9 @@
     "u": "wu",
     "|": "wui",
     "!": "wun",
-    "8": "jung",
-    ":": "oe",
-    "j": "oey",
-    "s": "oen",
-    "3": "oeng",
-    "#": "jy",
-    "2": "jyn"
+    "8": "ung",
+    "?": "jyu",
+    "2": "jyun"
   },
   "standalone_short": {
     "p": "aap",
@@ -127,9 +123,7 @@
     "}": "ok",
     "z": "ut",
     "q": "uk",
-    "x": "oet",
-    "{": "oek",
-    "(": "jyt"
+    "(": "jyut"
   },
   "tones_long": {
     " ": "1",

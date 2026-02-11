@@ -1,19 +1,33 @@
 import asyncio
-from PIL import Image
 import logging
 from app.api.schemas import ImageProcessingResult
 from typing import List
+import time
+import cv2
+import numpy as np
+import os
+from pathlib import Path
+import louis
+from typing import NewType, Optional, Literal
+import re
+import json
+import jyutping2characters
+
+
+from app.core.inference import yolo_inference
+
+jyutping2characters.ensure_data_available()
 
 # Create a lock for the non-thread-safe image processing
 image_processing_lock = asyncio.Lock()
 
-async def process_braille_image(image: Image.Image, original_filename: str, lang: str) -> ImageProcessingResult:
+async def process_braille_image(image: np.ndarray, original_filename: str, lang: str) -> ImageProcessingResult:
     """
     1. OCR the image and extract braille text.
     2. Convert braille to print text using liblouis.
     """
     try:
-        braille = recognize_braille(image)
+        braille = yolo_inference(image)
         text = None
         print("language: ", lang)
         if braille is not None:
@@ -29,41 +43,7 @@ async def process_braille_image(image: Image.Image, original_filename: str, lang
         logging.error(f"Error processing image: {str(e)}")
         raise
 
-import os
-from pathlib import Path
-from PIL import Image
-import AngelinaReader.model.infer_retinanet as infer_retinanet
-import louis
-from typing import NewType, Optional, Literal
-import re
-import json
-# from openai import OpenAI
-
-ANGELINA_READER_DIR = os.path.normpath(os.path.join(__file__, "..", "..", "..", "AngelinaReader"))
-
-recognizer = infer_retinanet.BrailleInference(
-    params_fn=os.path.join(ANGELINA_READER_DIR, 'weights', 'param.txt'),
-    model_weights_fn=os.path.join(ANGELINA_READER_DIR, 'weights', 'model.t7'),
-    create_script=None
-)
-
-def recognize_braille(
-    input_image: Image.Image,
-) -> List[str] | None:
-    result_dict = recognizer.run(
-        input_image,
-        lang="EN",  # Language isn't important here, as we are only using AngelinaReader for the braille
-        draw_refined=recognizer.DRAW_NONE,
-        find_orientation=False,
-        process_2_sides=False,
-        align_results=True,
-        repeat_on_aligned=False,
-    )
     
-    if result_dict is None:
-        return None
-    return result_dict['braille']
-
 def correct_homophones(text: str) -> str:
     """
     Correct homophones in Cantonese text.
@@ -74,7 +54,7 @@ def correct_homophones(text: str) -> str:
 
 def braille_to_text(braille: List[str], lang: Literal["EN", "ZH-HK"]) -> str:
     """
-    Convert braille to text using liblouis.
+    Convert braille to text
     """
     back_translation = ""
     if lang == "EN":
@@ -82,25 +62,23 @@ def braille_to_text(braille: List[str], lang: Literal["EN", "ZH-HK"]) -> str:
             lambda braille_line: louis.backTranslateString(["en-ueb-g2.ctb"], braille_line),
             braille
         )))
+        # Clean the transcribed text
+        # The text might contain braille literals like \1/, \123/, etc.
+        # which are results of untranslatable braille patterns
+        # Remove these patterns
+        cleaned_text = re.sub(r"\\(\d+)/", "", back_translation)
+        return cleaned_text
+
     elif lang == "ZH-HK":
-        back_translation = "\n".join(list(map(
-            lambda braille_line: louis.backTranslateString(["braille-patterns.cti", "zh-hk.ctb"], braille_line),
+        jyutping = "\n".join(list(map(
+            lambda braille_line: back_translate_zhhk(braille_line),
             braille
         )))
-        # jyutping = "\n".join(list(map(
-        #     lambda braille_line: back_translate_zhhk(braille_line),
-        #     braille
-        # )))
-        # back_translation = correct_homophones(back_translation)
+        back_translation = correct_homophones(jyutping)
+        return back_translation
     
-    # Clean the transcribed text
-    # The text might contain braille literals like \1/, \123/, etc.
-    # which are results of untranslatable braille patterns
-    # Remove these patterns
-    cleaned_text = re.sub(r"\\(\d+)/", "", back_translation)
-    return cleaned_text
-
 def back_translate_zhhk(braille: str) -> str:
+    print("received", braille)
     chars_map = json.load(open(os.path.join(Path(__file__).parent, "braille_chars_mapping.json"), "r"))
     # Convert braille to ascii
     braille = "".join([chars_map[char] for char in braille])
@@ -151,41 +129,41 @@ def back_translate_zhhk(braille: str) -> str:
             elif braille[i] == "=" and i+1 < len(braille) and braille[i+1] == " ":
                 result += "。"
                 i += 1
+            elif braille[i] == "(":
+                result += "（"
+                i += 1
+            elif braille[i] == "}":
+                result += "）"
+                i += 1
             else:  # Invalid character
                 i += 1  # Skip invalid character
                 pass
-    return result
+    print("result", result)
+
+    def split_and_rejoin_with_processing(text_string, process_func, sep_pattern: str):
+        split_pattern = f"({sep_pattern})"
+        try:
+            split_parts = re.split(split_pattern, text_string)
+        except:
+            print("here")
+            raise
+
+        processed_parts = []
+        for part in split_parts:
+            if part is None:
+                # re.split can sometimes return None for non-matching groups,
+                # though less common with simple alternation patterns.
+                continue
+            
+            if re.fullmatch(split_pattern, part):
+                processed_parts.append(part)  # It's a delimiter, keep it as is
+            else:
+                processed_parts.append(process_func(part))  # It's a data part, apply the function
+
+        return "".join(processed_parts)
+
+    characters = split_and_rejoin_with_processing(result.replace(" ", ""), jyutping2characters.transcribe, '[，、。；！？「」…（）\\(\\)]|[\u2800-\u28FF]')
+    print(characters)
+    return characters
 
 
-# def jyutping_to_text(jyutping: str) -> str:
-#     client = OpenAI(
-#     base_url="https://openrouter.ai/api/v1",
-#     api_key="<OPENROUTER_API_KEY>",
-#     )
-
-#     completion = client.chat.completions.create(
-#     extra_headers={
-#         "HTTP-Referer": "<YOUR_SITE_URL>", # Optional. Site URL for rankings on openrouter.ai.
-#         "X-Title": "<YOUR_SITE_NAME>", # Optional. Site title for rankings on openrouter.ai.
-#     },
-#     extra_body={},
-#     model="google/gemini-2.0-flash-001",
-#     messages=[
-#         {
-#         "role": "user",
-#         "content": [
-#             {
-#             "type": "text",
-#             "text": "What is in this image?"
-#             },
-#             {
-#             "type": "image_url",
-#             "image_url": {
-#                 "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
-#             }
-#             }
-#         ]
-#         }
-#     ]
-#     )
-#     print(completion.choices[0].message.content)
