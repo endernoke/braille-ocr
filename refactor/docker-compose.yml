@@ -23,11 +23,8 @@ services:
     profiles: [app]
     ports:
       - "8000:8000"
-    environment:
-      - REDIS_HOST=redis
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    env_file:
+      - .env
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
@@ -46,11 +43,8 @@ services:
       dockerfile: Dockerfile.worker
     container_name: worker
     profiles: [app]
-    environment:
-      - REDIS_HOST=redis
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - DEVICE=cuda
+    env_file:
+      - .env
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
