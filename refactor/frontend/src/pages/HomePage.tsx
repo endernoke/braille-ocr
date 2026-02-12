@@ -6,7 +6,7 @@ import { useJobPolling } from '../hooks/useJobPolling';
 export const HomePage: React.FC = () => {
   const [jobId, setJobId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [, setUploadedFile] = useState<File | null>(null);
 
   const { data: jobStatus, error: pollingError } = useJobPolling(jobId);
 

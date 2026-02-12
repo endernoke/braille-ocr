@@ -1,8 +1,6 @@
 # Docker Compose override for CPU-only deployment
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.cpu.yml up
 
-version: '3.8'
-
 services:
   worker:
     environment:

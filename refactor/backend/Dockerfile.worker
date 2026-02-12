@@ -1,0 +1,95 @@
+FROM debian:bookworm-slim AS c-builder
+
+# Fetch build dependencies
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    automake \
+    curl \
+    libtool \
+    libyaml-dev \
+    make \
+    pkg-config \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    texinfo \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/liblouis
+
+ARG LIBLOUIS_VERSION=3.36.0
+RUN wget -O liblouis.tar.gz \
+    https://github.com/liblouis/liblouis/releases/download/v${LIBLOUIS_VERSION}/liblouis-${LIBLOUIS_VERSION}.tar.gz && \
+    tar -xzf liblouis.tar.gz && \
+    mv liblouis-*/* . && \
+    rm liblouis.tar.gz
+
+# # compile and install liblouis
+RUN ./configure --enable-ucs4 && make && make install && ldconfig
+
+# Stage 2: Final worker image
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS worker
+
+# Setup a non-root user
+RUN groupadd --system --gid 999 nonroot \
+    && useradd --system --gid 999 --uid 999 --create-home nonroot
+
+WORKDIR /app
+
+# Copy liblouis from builder stage
+COPY --from=c-builder /usr/local/lib/liblouis.so /usr/local/lib/
+RUN ldconfig
+
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
+
+# Omit development dependencies
+ENV UV_NO_DEV=1
+
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --extra worker
+
+# Install liblouis Python bindings
+# It should be able to find the shared library since it's in a standard location
+COPY --from=c-builder /usr/src/liblouis/python/ /app/louis/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --no-cache-dir /app/louis/
+
+# Then, add the rest of the project source code and install it
+# Installing separately from its dependencies allows optimal layer caching
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --inexact
+
+# Copy source code
+COPY src/ ./src/
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Reset the entrypoint, don't invoke `uv`
+ENTRYPOINT []
+
+# Use the non-root user to run our application
+USER nonroot
+
+# Health check (check if Celery worker is responsive)
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD celery -A src.worker.celery_app inspect ping || exit 1
+
+# Run Celery worker
+# --concurrency=1 for GPU (one task at a time per GPU)
+# Increase for CPU-only mode
+CMD ["uv", "run", "celery", "-A", "src.worker.celery_app", "worker", \
+     "--loglevel=info", "--concurrency=1", "--pool=solo"]
