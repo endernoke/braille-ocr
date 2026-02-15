@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from redis import Redis
+from celery.result import AsyncResult
 
 from ...common.schemas import JobSubmitResponse, JobStatusResponse, JobStatus
 from ..dependencies import get_redis_client
@@ -29,7 +30,7 @@ async def submit_job(
     # Save uploaded file
     filepath = storage.save_upload(file.file, file.filename)
     
-    # Submit task to Celery (using send_task to avoid importing worker code)
+    # Submit task to Celery
     task = celery_client.send_task('process_image', args=[filepath])
     job_id = task.id
     
@@ -58,7 +59,6 @@ async def get_job_status(
     
     Poll this endpoint until status is 'success' or 'failed'.
     """
-    from celery.result import AsyncResult
     
     # Get task result from Celery
     task_result = AsyncResult(job_id)
