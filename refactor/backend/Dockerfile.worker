@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim AS c-builder
+FROM debian:bookworm-slim@sha256:98f4b71de414932439ac6ac690d7060df1f27161073c5036a7553723881bffbe AS c-builder
 
 # Fetch build dependencies
 RUN apt-get update && apt-get install -y \
@@ -30,7 +30,10 @@ RUN wget -O liblouis.tar.gz \
 RUN ./configure --enable-ucs4 && make && make install && ldconfig
 
 # Stage 2: Final worker image
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS worker
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58 AS worker
+
+ARG OCR_MODEL_PATH
+ARG CLASSIFIER_MODEL_PATH
 
 # Setup a non-root user
 RUN groupadd --system --gid 999 nonroot \
@@ -42,16 +45,16 @@ WORKDIR /app
 COPY --from=c-builder /usr/local/lib/liblouis.so /usr/local/lib/
 RUN ldconfig
 
-# Enable bytecode compilation
+COPY --from=c-builder /usr/src/liblouis/tables /app/louis/tables
+ENV LOUIS_TABLEPATH=/app/louis/tables
+
+# Copy ml models
+COPY ${OCR_MODEL_PATH} /app/models/ocr_model.pt
+COPY ${CLASSIFIER_MODEL_PATH} /app/models/classifier_model.pt
+
 ENV UV_COMPILE_BYTECODE=1
-
-# Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
-
-# Omit development dependencies
 ENV UV_NO_DEV=1
-
-# Ensure installed tools can be executed out of the box
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
 # Install the project's dependencies using the lockfile and settings
@@ -66,14 +69,16 @@ COPY --from=c-builder /usr/src/liblouis/python/ /app/louis/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --no-cache-dir /app/louis/
 
+# Create jyutping2character mapping file
+ENV JYUTPING_CHARACTERS_DATA_PATH=/app/jyutping2characters/mapping.json
+RUN --mount=type=bind,source=scripts/generate_jyutping2characters.py,target=generate_jyutping2characters.py \
+    uv run python3 generate_jyutping2characters.py
+
 # Then, add the rest of the project source code and install it
 # Installing separately from its dependencies allows optimal layer caching
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --inexact
-
-# Copy source code
-COPY src/ ./src/
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"

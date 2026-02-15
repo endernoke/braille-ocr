@@ -18,8 +18,12 @@ api = [
     "celery[redis]>=5.6.2",  # Only celery client, not worker-specific deps
 ]
 worker = [
+    "albumentations>=2.0.8",
     "celery[redis]>=5.6.2",
+    "jyutping2characters>=0.1.0",
     "numpy>=2.4.2",
+    "opencv-python>=4.13.0.92",
     "torch>=2.10.0",
     "torchvision>=0.25.0",
+    "ultralytics>=8.4.14",
 ]

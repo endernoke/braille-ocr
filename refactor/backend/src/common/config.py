@@ -14,9 +14,6 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
-    
-    ocr_model_path: str = "/app/models/ocr_model.pth"
-    classifier_model_path: str = "/app/models/classifier_model.pth"
 
     device: str = "cuda"  # or "cpu"
     

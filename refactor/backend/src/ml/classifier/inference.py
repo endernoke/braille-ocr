@@ -1,79 +1,44 @@
-from typing import Dict, Tuple
-
+from pathlib import Path
+import json
 import torch
 
-from .model import TextClassifier
+from .model import BrailleClassifier, TextPreprocessor, ModelConfig
 from ..device import get_device
 
 
 class ClassifierInference:
-    # Stub classification categories
-    CATEGORIES = [
-        "invoice",
-        "receipt",
-        "form",
-        "letter",
-        "contract",
-        "memo",
-        "report",
-        "other",
-    ]
-    
     def __init__(self, model_path: str):
-        """Initialize classifier.
-        
-        Args:
-            model_path: Path to model weights
-        """
-        self.device = get_device()
-        self.num_classes = len(self.CATEGORIES)
-        
-        # Load model
-        self.model = TextClassifier(num_classes=self.num_classes)
-        
-        # In production, load actual weights:
-        # self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        
-        self.model.to(self.device)
+        checkpoint = torch.load(model_path, map_location="cpu")
+        alphabet = checkpoint["alphabet"]
+        self.preprocessor = TextPreprocessor(alphabet, max_length=20)
+        self.label_names = checkpoint["label_names"]
+
+        self.model_config = ModelConfig(**checkpoint["config"])
+        self.model = BrailleClassifier(self.model_config)
+        self.model.load_state_dict(checkpoint["model_state"])
         self.model.eval()
-        
-        print(f"Classifier loaded from {model_path}")
-    
-    @torch.no_grad()
-    def predict(self, text: str) -> Tuple[str, float]:
-        """Classify text content.
-        
-        Args:
-            text: Input text string
-            
-        Returns:
-            category: Predicted category name
-            confidence: Confidence score
-        """
-        # Stub: return a dummy classification
-        # In production, tokenize text and run through model
-        
-        # For now, use simple heuristics
-        text_lower = text.lower()
-        
-        if "invoice" in text_lower or "total" in text_lower:
-            return "invoice", 0.87
-        elif "receipt" in text_lower:
-            return "receipt", 0.91
-        elif "form" in text_lower or "field" in text_lower:
-            return "form", 0.82
-        elif "contract" in text_lower:
-            return "contract", 0.79
-        else:
-            return "other", 0.65
-    
-    def predict_batch(self, texts: list[str]) -> list[Tuple[str, float]]:
-        """Classify a batch of texts.
-        
-        Args:
-            texts: List of text strings
-            
-        Returns:
-            List of (category, confidence) tuples
-        """
-        return [self.predict(text) for text in texts]
+
+        with open(Path(__file__).parent.parent.parent / "braille" / "braille_chars.json", "r") as f:
+            self.braille_unicode_mapping = json.load(f)
+
+    def predict(self, text: str) -> tuple[str, float]:
+        text = "".join([self.braille_unicode_mapping.get(char, "") for char in text])
+        processed_text = self.preprocessor.preprocess(text)
+        input_ids = torch.tensor([processed_text], dtype=torch.long)
+        probs = self.model.predict(input_ids)
+        return self.top_k_predictions(probs, self.label_names, k=1)[0][0]
+
+    def top_k_predictions(
+        self,
+        probs: torch.Tensor,
+        labels: list[str],
+        k: int = 2,
+    ) -> list[list[tuple[str, float]]]:
+        values, indices = torch.topk(probs, k=k, dim=-1)
+        results: list[list[tuple[str, float]]] = []
+        for row_values, row_indices in zip(values, indices):
+            row = []
+            for score, idx in zip(row_values.tolist(), row_indices.tolist()):
+                row.append((labels[idx], float(score)))
+            results.append(row)
+        return results

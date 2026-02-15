@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf
     container_name: redis
     profiles: [app, training]
     ports:
@@ -29,7 +29,6 @@ services:
       - ./backend/src:/app/src
       - uploads:/app/uploads
       - results:/app/results
-      - models:/app/models
     depends_on:
       redis:
         condition: service_healthy
@@ -41,6 +40,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.worker
+      args:
+        - OCR_MODEL_PATH=${OCR_MODEL_PATH}
+        - CLASSIFIER_MODEL_PATH=${CLASSIFIER_MODEL_PATH}
     container_name: worker
     profiles: [app]
     env_file:
@@ -49,7 +51,6 @@ services:
       - ./backend/src:/app/src
       - uploads:/app/uploads
       - results:/app/results
-      - models:/app/models
     depends_on:
       redis:
         condition: service_healthy

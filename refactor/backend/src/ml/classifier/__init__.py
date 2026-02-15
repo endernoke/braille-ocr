@@ -1,4 +1,4 @@
-from .model import TextClassifier
+from .model import BrailleClassifier, TextPreprocessor, ModelConfig
 from .inference import ClassifierInference
 
-__all__ = ["TextClassifier", "ClassifierInference"]
+__all__ = ["BrailleClassifier", "TextPreprocessor", "ModelConfig", "ClassifierInference"]
