@@ -54,7 +54,7 @@ def process_image(self: Task, image_path: str) -> Dict[str, Any]:
         
         self.update_state(state="PROCESSING", meta={"step": "ocr"})
         ocr_model = get_ocr_model()
-        extracted_text = ocr_model.predict(np.array(image))
+        extracted_text, bounding_boxes, annotated_image = ocr_model.predict(np.array(image))
         text_length = len("\n".join(extracted_text))
         print(f"OCR complete: {text_length} chars")
         print(f"Extracted text (first 100 chars): {' '.join(extracted_text)[:100]}...")
@@ -67,13 +67,16 @@ def process_image(self: Task, image_path: str) -> Dict[str, Any]:
         self.update_state(state="PROCESSING", meta={"step": "postprocessing"})
         processed_text = braille_backtranslator.backtranslate(extracted_text, lang=category)
         print(f"Postprocessing complete")
+
+        self.update_state(state="PROCESSING", meta={"step": "saving_results"})
+        result_path = storage.save_result_image(Image.fromarray(annotated_image), self.request.id)
         
         result = {
             "extracted_text": processed_text,
             "classification": category,
             "confidence": confidence,
-            "bounding_boxes": [box.to_dict() for box in []],
-            "annotated_image_url": image_path, # noop
+            "bounding_boxes": [dict(box) for box in bounding_boxes],
+            "annotated_image_url": storage.get_result_url(result_path)
         }
         
         print(f"Processing complete for job {self.request.id}")

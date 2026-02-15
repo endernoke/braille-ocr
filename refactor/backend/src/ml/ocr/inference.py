@@ -12,11 +12,17 @@ import uuid
 import os
 import numpy as np
 
+from ...common.schemas import BoundingBox
+
 class OCRInference:
     def __init__(self, model_path: str):
         self.model = CustomYOLO(model_path)
     
-    def predict(self, image: np.ndarray) -> list[str]:
+    def predict(self, image: np.ndarray) -> tuple[list[str], list[BoundingBox], np.ndarray]:
+        """
+        Returns:
+            (list of text lines, list of bounding boxes, image with drawn boxes)
+        """
         result = self.model.predict(
             image,
             conf=0.25,
@@ -49,17 +55,34 @@ class OCRInference:
             p1, p2 = np.split(xyxy.round().astype(int), 2)
             cv2.rectangle(image, p1, p2, (0, 0, 128), 2)
             cv2.putText(image, str(int(box.cls.cpu().item())), p1, cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 128), 2, cv2.LINE_AA)
-        # if not os.path.exists("results"):
-        #     os.makedirs("results", exist_ok=True)
-        # cv2.imwrite(f"results/{int(time.time())}-{uuid.uuid4()}.jpg", image)
 
-        return str_lines
+        bounding_boxes: list[BoundingBox] = [
+            self.convert_to_bounding_box(box) for box in result.boxes
+        ]
+
+        return str_lines, bounding_boxes, image
 
     def process_box(self, box):
         xyxy = box.xyxy
         if isinstance(xyxy, torch.Tensor):
             xyxy = xyxy.detach().cpu().squeeze().numpy()
         return xyxy.tolist()
+    
+    def convert_to_bounding_box(self, box) -> BoundingBox:
+        xyxyn = box.xyxyn
+        if isinstance(xyxyn, torch.Tensor):
+            xyxyn = xyxyn.detach().cpu().squeeze().numpy()
+        p1, p2 = np.split(xyxyn.astype(float), 2)
+        label = str(int(box.cls.cpu().item()))
+        conf = float(box.conf.cpu().item())
+        return BoundingBox(
+            x=float(p1[0]),
+            y=float(p1[1]),
+            width=float(p2[0] - p1[0]),
+            height=float(p2[1] - p1[1]),
+            text=label,
+            confidence=conf,
+        )
 
     def braille_char_from_classl(self, cls):
         cls += 1

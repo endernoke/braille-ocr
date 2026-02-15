@@ -43,8 +43,9 @@ def create_app() -> FastAPI:
     
     # Serve result images as static files
     result_dir = Path(settings.result_dir)
-    if result_dir.exists():
-        app.mount("/results", StaticFiles(directory=str(result_dir)), name="results")
+    if not result_dir.exists():
+        print(f"Warning: Result directory {result_dir} does not exist.")
+    app.mount("/results", StaticFiles(directory=str(result_dir)), name="results")
     
     return app
 
