@@ -2,16 +2,31 @@ import { useCallback, useRef, useState, type DragEvent } from "react";
 import { Upload, XIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FullScreenImageViewer } from "@/components/FullScreenImageViewer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { BrailleLanguage } from "@/types/api";
 
 interface UploadSectionProps {
-  onSubmit: (file: File) => void;
+  onSubmit: (file: File, language?: BrailleLanguage | null) => void;
   isLoading: boolean;
 }
+
+const LANGUAGE_OPTIONS: { value: BrailleLanguage; label: string }[] = [
+  { value: "en-ueb-g2", label: "English UEB Grade 2" },
+  { value: "en-ueb-g1", label: "English UEB Grade 1" },
+  { value: "zh-hk", label: "Cantonese (Hong Kong)" },
+];
 
 export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [language, setLanguage] = useState<BrailleLanguage | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((f: File) => {
@@ -57,7 +72,7 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
   );
 
   const handleSubmit = () => {
-    if (file) onSubmit(file);
+    if (file) onSubmit(file, language);
   };
 
   return (
@@ -127,11 +142,26 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
         />
       </div>
 
-      <div className="mt-4">
-        <label className="text-sm font-medium">
-          Braille language{" "}
-          <span className="text-muted-foreground">(optional)</span>
-        </label>
+      <div className="mt-4 space-y-2">
+        <div className="mb-2">
+          <label htmlFor="language-select" className="text-sm font-medium">
+            Braille language code {" "}
+            <span className="text-muted-foreground">(optional)</span>
+          </label>
+        </div>
+        <Select value={language ?? "auto"} onValueChange={(val) => setLanguage(val === "auto" ? null : (val as BrailleLanguage))}>
+          <SelectTrigger id="language-select" className="w-full sm:w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">Auto-detect</SelectItem>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Button

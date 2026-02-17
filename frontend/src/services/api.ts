@@ -1,10 +1,16 @@
-import type { JobSubmitResponse, JobStatusResponse } from "@/types/api";
+import type { BrailleLanguage, JobSubmitResponse, JobStatusResponse } from "@/types/api";
 
 const API_BASE = "/api";
 
-export async function submitJob(file: File): Promise<JobSubmitResponse> {
+export async function submitJob(
+  file: File,
+  language?: BrailleLanguage | null
+): Promise<JobSubmitResponse> {
   const formData = new FormData();
   formData.append("file", file);
+  if (language) {
+    formData.append("language", language);
+  }
 
   const res = await fetch(`${API_BASE}/jobs`, {
     method: "POST",

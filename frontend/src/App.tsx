@@ -6,20 +6,20 @@ import { UploadSection } from "@/components/UploadSection";
 import { ResultsSection } from "@/components/ResultsSection";
 import { Footer } from "@/components/Footer";
 import { submitJob, pollJobUntilDone } from "@/services/api";
-import type { JobResult } from "@/types/api";
+import type { BrailleLanguage, JobResult } from "@/types/api";
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<JobResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = useCallback(async (file: File) => {
+  const handleSubmit = useCallback(async (file: File, language?: BrailleLanguage | null) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const { job_id } = await submitJob(file);
+      const { job_id } = await submitJob(file, language);
       const status = await pollJobUntilDone(job_id);
 
       if (status.result) {

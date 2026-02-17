@@ -1,5 +1,7 @@
 export type JobStatus = "pending" | "processing" | "success" | "failed";
 
+export type BrailleLanguage = "en-ueb-g1" | "en-ueb-g2" | "zh-hk";
+
 export interface BoundingBox {
   x: number;
   y: number;
