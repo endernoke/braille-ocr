@@ -27,7 +27,7 @@ export function Hero() {
             transcription in seconds.
           </p>
           <p className="mt-3 text-xs text-muted-foreground/70">
-            English UEB Grade 1 & 2 · Cantonese Braille · Single & double pages
+            English UEB Grade 1 & 2 · Cantonese Braille · Single & double-sided pages
           </p>
           <Button
             onClick={scrollToUpload}
