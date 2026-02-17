@@ -31,7 +31,7 @@ export function ResultsSection({
   };
 
   return (
-    <section id="results" className="mx-auto max-w-4xl px-4 pb-20 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <section id="results" className="mx-auto max-w-4xl px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {error && (
         <div className="mb-6 flex items-start justify-between rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p>{error}</p>

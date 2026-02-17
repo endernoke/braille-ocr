@@ -61,7 +61,7 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
   };
 
   return (
-    <section id="upload" className="mx-auto max-w-4xl px-4 py-16">
+    <section id="upload" className="mx-auto max-w-4xl px-4 pt-16 pb-8">
       <h2 id="upload-heading" className="text-2xl font-semibold tracking-tight" tabIndex={-1}>
         Upload &amp; transcribe
       </h2>
