@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type DragEvent } from "react";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, XIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FullScreenImageViewer } from "@/components/FullScreenImageViewer";
 
 interface UploadSectionProps {
   onSubmit: (file: File) => void;
@@ -92,20 +93,26 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
             </p>
           </div>
         ) : (
-          <div className="relative">
-            <div className="overflow-hidden rounded-xl border">
-              <img
-                src={preview}
-                alt="Uploaded braille image preview"
-                className="mx-auto max-h-64 w-auto object-contain"
-              />
-            </div>
+          <div className="relative h-fit w-fit">
+            <FullScreenImageViewer
+              src={preview}
+              alt="Uploaded braille image preview, full size"
+              title="Image preview"
+            >
+              <button className="size-48 sm:size-56 overflow-hidden rounded-lg border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <img
+                  src={preview}
+                  alt="Uploaded braille image preview, click to enlarge"
+                  className="size-full object-cover"
+                />
+              </button>
+            </FullScreenImageViewer>
             <button
               onClick={clearFile}
-              className="absolute right-2 top-2 rounded-full bg-background/80 p-1.5 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+              className="absolute right-2 top-2 rounded-full border bg-background p-1.5 text-muted-foreground shadow-md transition-colors hover:text-foreground"
               aria-label="Remove image"
             >
-              <X className="size-4" />
+              <XIcon className="size-3.5" />
             </button>
           </div>
         )}

@@ -1,14 +1,9 @@
-import { Copy, Check, ZoomIn } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FullScreenImageViewer } from "@/components/FullScreenImageViewer";
 import type { JobResult } from "@/types/api";
 
 interface ResultsSectionProps {
@@ -105,7 +100,6 @@ export function ResultsSection({
             </CardContent>
           </Card>
 
-          {/* Detected Characters */}
           {result.bounding_boxes.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
@@ -134,7 +128,6 @@ export function ResultsSection({
             </Card>
           )}
 
-          {/* Annotated Image */}
           {result.annotated_image_url && (
             <Card>
               <CardHeader className="pb-3">
@@ -143,30 +136,19 @@ export function ResultsSection({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <button className="group relative w-full overflow-hidden rounded-lg border">
-                      <img
-                        src={result.annotated_image_url}
-                        alt="Annotated braille image with bounding boxes"
-                        className="w-full object-contain"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                        <ZoomIn className="size-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
-                      </div>
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] max-w-[90vw] overflow-auto p-2">
-                    <DialogTitle className="sr-only">
-                      Annotated image full view
-                    </DialogTitle>
+                <FullScreenImageViewer
+                  src={result.annotated_image_url}
+                  alt="Annotated braille image with bounding boxes, full size"
+                  title="Annotated image full view"
+                >
+                  <button className="group relative w-full overflow-hidden rounded-lg border">
                     <img
                       src={result.annotated_image_url}
-                      alt="Annotated braille image with bounding boxes — full size"
-                      className="h-auto w-full object-contain"
+                      alt="Annotated braille image with bounding boxes, click to enlarge"
+                      className="w-full object-contain"
                     />
-                  </DialogContent>
-                </Dialog>
+                  </button>
+                </FullScreenImageViewer>
               </CardContent>
             </Card>
           )}
