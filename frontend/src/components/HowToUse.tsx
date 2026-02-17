@@ -36,7 +36,7 @@ export function HowToUse() {
   const [tipsOpen, setTipsOpen] = useState(false);
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-16">
+    <section className="mx-auto max-w-4xl px-4 py-16">
       <h2 className="text-2xl font-semibold tracking-tight">How to use</h2>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
