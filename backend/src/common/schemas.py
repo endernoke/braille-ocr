@@ -11,6 +11,13 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 
+class Language(str, Enum):
+    """Supported braille languages."""
+    EN_UEB_G1 = "en-ueb-g1"
+    EN_UEB_G2 = "en-ueb-g2"
+    ZH_HK = "zh-hk"
+
+
 class BoundingBox(BaseModel):
     x: float
     y: float

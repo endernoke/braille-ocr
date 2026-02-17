@@ -10,6 +10,7 @@ from ..ml.ocr import OCRInference
 from ..ml.classifier import ClassifierInference
 from ..braille import braille_backtranslator
 from ..common.config import settings
+from ..common.schemas import Language
 from ..common import storage
 
 
@@ -36,17 +37,21 @@ def get_classifier_model() -> ClassifierInference:
 
 
 @celery_app.task(bind=True, name="process_image")
-def process_image(self: Task, image_path: str) -> Dict[str, Any]:
+def process_image(self: Task, image_path: str, language: str = None) -> Dict[str, Any]:
     """Process an image through the full ML pipeline.
     
     Args:
         image_path: Path to uploaded image
+        language: Optional language code (en-ueb-g1, en-ueb-g2, zh-hk). 
+                  If provided, skips classification stage.
         
     Returns:
         Dictionary with results
     """
     try:        
         print(f"Processing image: {image_path}")
+        if language:
+            print(f"Language provided: {language} (skipping classification)")
         self.update_state(state="PROCESSING", meta={"step": "loading_image"})
         
         image = Image.open(image_path)
@@ -59,13 +64,19 @@ def process_image(self: Task, image_path: str) -> Dict[str, Any]:
         print(f"OCR complete: {text_length} chars")
         print(f"Extracted text (first 100 chars): {' '.join(extracted_text)[:100]}...")
         
-        self.update_state(state="PROCESSING", meta={"step": "classification"})
-        classifier_model = get_classifier_model()
-        category, confidence = classifier_model.predict("".join(extracted_text))
-        print(f"Classification: {category} (confidence: {confidence:.2f})")
+        # Skip classification if language is provided
+        if language:
+            category = language
+            confidence = 1.0  # 100% confidence since user provided it
+            print(f"Using provided language: {category}")
+        else:
+            self.update_state(state="PROCESSING", meta={"step": "classification"})
+            classifier_model = get_classifier_model()
+            category, confidence = classifier_model.predict("".join(extracted_text))
+            print(f"Classification: {category} (confidence: {confidence:.2f})")
         
         self.update_state(state="PROCESSING", meta={"step": "postprocessing"})
-        processed_text = braille_backtranslator.backtranslate(extracted_text, lang=category)
+        processed_text = braille_backtranslator.backtranslate(extracted_text, lang=Language(category))
         print(f"Postprocessing complete")
 
         self.update_state(state="PROCESSING", meta={"step": "saving_results"})

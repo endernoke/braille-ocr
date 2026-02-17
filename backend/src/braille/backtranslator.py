@@ -7,6 +7,8 @@ import re
 from jyutping2characters import JyutpingTranscriber
 import louis
 
+from ..common.schemas import Language
+
 class BrailleBacktranslator:
     def __init__(self):
         # Let it throw FileNotFound errors as normal
@@ -16,12 +18,12 @@ class BrailleBacktranslator:
             self.zhhk_braille_jyutping_map = json.load(f)
         self.jyutping2characters = JyutpingTranscriber.from_file(os.getenv("JYUTPING_CHARACTERS_DATA_PATH"))
         
-    def backtranslate(self, braille: list[str], lang: Literal["en-us-g2", "zh-hk"]) -> str:
+    def backtranslate(self, braille: list[str], lang: Language) -> str:
         """
         Convert braille to text
         """
         # NOTE: English grade 1 is treated as grade 2 as well since grade 2 is (mostly) a superset of grade 1
-        if lang == "en-ueb-g2":
+        if lang in (Language.EN_UEB_G1, Language.EN_UEB_G2):
             back_translation = "\n".join(list(map(
                 lambda braille_line: louis.backTranslateString(["en-ueb-g2.ctb"], braille_line),
                 braille
@@ -33,7 +35,7 @@ class BrailleBacktranslator:
             cleaned_text = re.sub(r"\\(\d+)/", "", back_translation)
             return cleaned_text
 
-        elif lang == "zh-hk":
+        elif lang == Language.ZH_HK:
             back_translation = "\n".join(list(map(
                 lambda braille_line: self.backtranslate_zhhk(braille_line),
                 braille

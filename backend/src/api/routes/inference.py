@@ -1,12 +1,12 @@
 import json
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
 from redis import Redis
 from celery.result import AsyncResult
 
-from ...common.schemas import JobSubmitResponse, JobStatusResponse, JobStatus
+from ...common.schemas import JobSubmitResponse, JobStatusResponse, JobStatus, Language
 from ..dependencies import get_redis_client
 from ..celery_client import celery_client
 from ...common import storage
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/jobs", tags=["inference"])
 @router.post("", response_model=JobSubmitResponse)
 async def submit_job(
     file: Annotated[UploadFile, File(description="Image file to process")],
+    language: Annotated[Optional[Language], Form(description="Optional: Braille code or language. If not provided, language will be auto-detected.")] = None,
     redis_client: Redis = Depends(get_redis_client),
 ):
     """Submit an image for OCR processing.
@@ -27,11 +28,11 @@ async def submit_job(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-    # Save uploaded file
     filepath = storage.save_upload(file.file, file.filename)
+    language_value = language.value if language else None
     
     # Submit task to Celery
-    task = celery_client.send_task('process_image', args=[filepath])
+    task = celery_client.send_task('process_image', args=[filepath, language_value])
     job_id = task.id
     
     # Store job metadata in Redis
