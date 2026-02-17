@@ -1,7 +1,7 @@
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FullScreenImageViewer } from "@/components/FullScreenImageViewer";
 import type { JobResult } from "@/types/api";
@@ -100,7 +100,7 @@ export function ResultsSection({
             </CardContent>
           </Card>
 
-          {result.bounding_boxes.length > 0 && (
+          {/* {result.bounding_boxes.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold">
@@ -126,7 +126,7 @@ export function ResultsSection({
                 </div>
               </CardContent>
             </Card>
-          )}
+          )} */}
 
           {result.annotated_image_url && (
             <Card>
