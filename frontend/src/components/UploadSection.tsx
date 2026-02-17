@@ -62,7 +62,7 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
 
   return (
     <section id="upload" className="mx-auto max-w-2xl px-4 py-16">
-      <h2 className="text-2xl font-semibold tracking-tight">
+      <h2 id="upload-heading" className="text-2xl font-semibold tracking-tight" tabIndex={-1}>
         Upload &amp; transcribe
       </h2>
 
@@ -127,13 +127,12 @@ export function UploadSection({ onSubmit, isLoading }: UploadSectionProps) {
         />
       </div>
 
-      {/* Language selector - for future backend support */}
-      {/* <div className="mt-4">
+      <div className="mt-4">
         <label className="text-sm font-medium">
           Braille language{" "}
           <span className="text-muted-foreground">(optional)</span>
         </label>
-      </div> */}
+      </div>
 
       <Button
         onClick={handleSubmit}
