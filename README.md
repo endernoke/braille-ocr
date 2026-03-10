@@ -1,6 +1,8 @@
 # Braille OCR
 
-A web-based application that converts images of Braille text into readable print text using deep learning. The system supports automatic language detection and transcription for English (UEB) and Cantonese Braille.
+https://github.com/user-attachments/assets/2dd2128f-9322-489e-8095-04dfe10d9f14
+
+A deep-learning pipeline + webapp that converts images of Braille text into readable print text. The system supports automatic language detection and transcription for English (UEB) and Cantonese Braille.
 
 ## Features
 
